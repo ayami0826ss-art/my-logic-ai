@@ -19,7 +19,7 @@ for message in st.session_state.messages:
         st.markdown(message["content"])
 
 # 5. ユーザー入力があった時の処理
-if prompt := st.chat_input("日本文化や言語のロジックを質問してください"):
+if prompt := st.chat_input("Questions for Ayachan"):
     # ユーザーの入力を履歴に追加して表示
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
