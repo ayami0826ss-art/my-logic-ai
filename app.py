@@ -1,55 +1,54 @@
----
+import streamlit as st
+from groq import Groq
 
-### 2. Streamlit Cloud（公開サーバー）
-GitHubに置いたコードを、実際の「Webサイト」として動かすエンジンです。
-1.  [Streamlit Community Cloud](https://share.streamlit.app/) にアクセスし、GitHubアカウントでログインします。
-2.  **「Create app」** をクリック。
-3.  先ほど作ったリポジトリ（`my-logic-ai`）を選択し、Main file path に `app.py` と入力されていることを確認します。
-4.  **「Deploy!」** をクリックします。
+# ページの設定
+st.set_page_config(page_title="Logic Culture AI", page_icon="⛩️")
+st.title("論理的・日本文化学習AI")
 
----
+# APIキーの設定（Secretsから読み込む設定）
+# まだSecretsを設定していない場合は、一時的にここに直接書いても動きます
+# client = Groq(api_key="gsk_...") 
+client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-### 3. APIキーの「記載」場所（重要：セキュリティ）
-APIキーをコード内に直接書くと、GitHub上で誰でも見れる状態になってしまいます。これを防ぐために、**Streamlitの設定画面**に隠します。
+# セッション状態（履歴）の保持
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-1.  Streamlit Cloudの管理画面（デプロイ後に右下に出る **Settings**）を開きます。
-2.  **「Secrets」** という項目を探します。
-3.  そこに、以下のようにあなたのAPIキーを記載して保存してください。
-    ```toml
-    GROQ_API_KEY = "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"
-    ```
-4.  保存すると、アプリが自動で再起動し、あなたのAPIキーを使って爆速で回答を始めます。
+# 過去のメッセージを表示
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
----
+# ユーザー入力
+if prompt := st.chat_input("日本文化や言語のロジックを質問してください"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-### 全体の流れのイメージ
+    # AIの回答生成
+    with st.chat_message("assistant"):
+        response_placeholder = st.empty()
+        full_response = ""
+        
+        messages = [
+            {"role": "system", "content": "あなたは論理的・構造的な視点を持つ専門家です。簡潔で分析的な回答をしてください。"}
+        ] + [
+            {"role": m["role"], "content": m["content"]}
+            for m in st.session_state.messages
+        ]
 
+        completion = client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=messages,
+            stream=True
+        )
 
-
-### ?? 補足：まずは自分のPCで試したい場合
-もし公開する前に自分のPCで動かしてみたいなら：
-1.  PCの適当なフォルダに `app.py` を保存します。
-2.  コマンドプロンプトやターミナルで `pip install streamlit groq` を実行します。
-3.  `streamlit run app.py` と入力して実行します。
-4.  ブラウザが立ち上がり、ローカル環境でAIが動くのが確認できます。
-
-まずは **GitHubにファイルを2つ作る** ところから始めてみてください。不明論理的な構築手順として、最もシンプルで確実な**「GitHub」経由で公開する方法**を説明します。コードを「記載」する場所は、最終的にはGitHubというサイト上のファイルになります。
-
-以下の**3つの場所**に、順番にコードを配置していきましょう。
-
----
-
-### 1. GitHubのリポジトリ（保管場所）
-まずは、一意のサイトの「設計図」を置く場所を作ります。
-1.  [GitHub](https://github.com/) にログイン（アカウントがなければ作成）。
-2.  **「New repository」** ボタンを押し、名前（例：`my-logic-ai`）を付けて作成します。
-3.  その中に、以下の2つのファイルを新規作成して、コードをコピペしてください。
-
-#### ① `app.py`（メインのコード）
-前回の回答でお伝えした、`import streamlit as st` から始まる全コードをここに貼り付けます。
-
-#### ② `requirements.txt`（必要な部品リスト）
-以下の2行だけを記載します。
-```text
-streamlit
-groq
+        for chunk in completion:
+            content = chunk.choices[0].delta.content
+            if content:
+                full_response += content
+                response_placeholder.markdown(full_response + "▌")
+        
+        response_placeholder.markdown(full_response)
+    
+    st.session_state.messages.append({"role": "assistant", "content": full_response})
