@@ -1,54 +1,58 @@
 import streamlit as st
 from groq import Groq
 
-# ページの設定
+# 1. ページの設定
 st.set_page_config(page_title="Logic Culture AI", page_icon="⛩️")
 st.title("論理的・日本文化学習AI")
 
-# APIキーの設定（Secretsから読み込む設定）
-# まだSecretsを設定していない場合は、一時的にここに直接書いても動きます
-# client = Groq(api_key="gsk_...") 
+# 2. APIキーの設定
+# StreamlitのSecretsから読み込みます
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
-# セッション状態（履歴）の保持
+# 3. セッション状態（履歴）の保持
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# 過去のメッセージを表示
+# 4. 過去のメッセージを表示
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# ユーザー入力
+# 5. ユーザー入力があった時の処理
 if prompt := st.chat_input("日本文化や言語のロジックを質問してください"):
+    # ユーザーの入力を履歴に追加して表示
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # AIの回答生成
+    # 6. AIの回答生成
     with st.chat_message("assistant"):
         response_placeholder = st.empty()
         full_response = ""
         
-        messages = [
-            {"role": "system", "content": "あなたは論理的・構造的な視点を持つ専門家です。簡潔で分析的な回答をしてください。"}
-        ] + [
-            {"role": m["role"], "content": m["content"]}
-            for m in st.session_state.messages
-        ]
+        # メッセージリストを構築
+        messages = [{"role": "system", "content": "あなたは論理的な専門家です。"}]
+        for m in st.session_state.messages:
+            messages.append({"role": m["role"], "content": m["content"]})
 
-        completion = client.chat.completions.create(
-            model="llama3-8b-8192",
-            messages=messages,
-            stream=True
-        )
+        # API呼び出し（ストリーミング形式）
+        try:
+            completion = client.chat.completions.create(
+                model="llama3-8b-8192",
+                messages=messages,
+                stream=True
+            )
 
-        for chunk in completion:
-            content = chunk.choices[0].delta.content
-            if content:
-                full_response += content
-                response_placeholder.markdown(full_response + "▌")
-        
-        response_placeholder.markdown(full_response)
-    
-    st.session_state.messages.append({"role": "assistant", "content": full_response})
+            for chunk in completion:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    full_response += content
+                    response_placeholder.markdown(full_response + "▌")
+            
+            response_placeholder.markdown(full_response)
+            
+            # 回答を履歴に追加
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
+            
+        except Exception as e:
+            st.error(f"エラーが発生しました: {e}")
