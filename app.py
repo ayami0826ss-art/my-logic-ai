@@ -35,10 +35,10 @@ if prompt := st.chat_input("日本文化や言語のロジックを質問して�
         for m in st.session_state.messages:
             messages.append({"role": m["role"], "content": m["content"]})
 
-        # API呼び出し（ストリーミング形式）
+# API呼び出し（ストリーミング形式）
         try:
             completion = client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-3.3-70b-versatile",  # ここを最新の名前に変更
                 messages=messages,
                 stream=True
             )
