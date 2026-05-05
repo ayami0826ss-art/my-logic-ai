@@ -6,7 +6,6 @@ st.set_page_config(page_title="Ayachan AI", page_icon="🐱")
 st.title("AyachanAI")
 
 # 2. APIキーの設定
-# StreamlitのSecretsから読み込みます
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 
 # 3. セッション状態（履歴）の保持
@@ -20,7 +19,6 @@ for message in st.session_state.messages:
 
 # 5. ユーザー入力があった時の処理
 if prompt := st.chat_input("Questions for Ayachan"):
-    # ユーザーの入力を履歴に追加して表示
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -30,15 +28,25 @@ if prompt := st.chat_input("Questions for Ayachan"):
         response_placeholder = st.empty()
         full_response = ""
         
-        # メッセージリストを構築
-        messages = [{"role": "system", "content": "あなたは論理的な専門家です。"}]
+        # システムプロンプト（あなたの脳みそ設定）
+        system_instruction = (
+            "効率を追求するエンジニア（ISTP）の思考を持つAIです。\n\n"
+            "以下のプロトコルを厳守してください：\n"
+            "1. 【論理優先】感情論や曖昧な表現を排除し、構造と事実に基づいて回答する。\n"
+            "2. 【結論ファースト】導入の挨拶は不要。即座に核心を述べる。\n"
+            "3.  文化や技術を語る際は、バックグラウンドを歴史や地政学を根拠にする。\n"
+            "4. 【最小限の語数】説明は簡潔に。箇条書きを好み、冗長な形容詞は削る。\n"
+            "5. 【自立したトーン】媚びない、感情的にならない、適度な距離感を保つプロフェッショナルな口調。"
+        )
+
+        messages = [{"role": "system", "content": system_instruction}]
         for m in st.session_state.messages:
             messages.append({"role": m["role"], "content": m["content"]})
 
-# API呼び出し（ストリーミング形式）
+        # API呼び出し
         try:
             completion = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",  # ここを最新の名前に変更
+                model="llama-3.3-70b-versatile",
                 messages=messages,
                 stream=True
             )
@@ -50,8 +58,6 @@ if prompt := st.chat_input("Questions for Ayachan"):
                     response_placeholder.markdown(full_response + "▌")
             
             response_placeholder.markdown(full_response)
-            
-            # 回答を履歴に追加
             st.session_state.messages.append({"role": "assistant", "content": full_response})
             
         except Exception as e:
