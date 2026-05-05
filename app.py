@@ -2,7 +2,7 @@ import streamlit as st
 from groq import Groq
 
 # 1. ページの設定
-st.set_page_config(page_title="AyachanAI", page_icon="⛩️")
+st.set_page_config(page_title="Ayachan AI", page_icon="🐱")
 st.title("AyachanAI")
 
 # 2. APIキーの設定
