@@ -3,7 +3,7 @@ from groq import Groq
 
 # 1. ページの設定
 st.set_page_config(page_title="Logic Culture AI", page_icon="⛩️")
-st.title("論理的・日本文化学習AI")
+st.title("AyachanAI")
 
 # 2. APIキーの設定
 # StreamlitのSecretsから読み込みます
